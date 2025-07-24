@@ -1,27 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    // Use remotePatterns for more robust and flexible configuration
     remotePatterns: [
       {
+        // This is the one you need to add for Cloudinary
         protocol: 'https',
-        hostname: 'placehold.co',
+        hostname: 'res.cloudinary.com',
         port: '',
-        pathname: '/**', // Allow any path on placehold.co
+        pathname: '/**', 
       },
       {
         protocol: 'https',
-        hostname: 'example.com', // If you still use this
+        hostname: 'placehold.co',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'm.media-amazon.com', // <--- Add this
+        hostname: 'example.com',
         port: '',
-        pathname: '/images/**', // This path matches your example URL: /images/I/
+        pathname: '/**',
       },
-      // If you have other image domains, add them here following the same structure
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com',
+        port: '',
+        pathname: '/images/**',
+      },
     ],
   },
 };
