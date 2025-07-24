@@ -1,0 +1,200 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  firstName    String?
+  lastName     String?
+  email        String    @unique
+  password     String?
+  phone        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  orders       Order[]
+  isAdmin      Boolean   @default(false)
+  otp          String?
+  otpExpiresAt DateTime?
+  carts        Cart[]
+}
+
+model HomePage {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  sections       Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  seoTitle       String?
+  seoDescription String?
+}
+
+model Header {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  sections  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Footer {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  sections  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id             String             @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  description    String // Removed @db.Text
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  variations     ProductVariation[]
+  categories     Category[]         @relation("ProductToCategory", fields: [categoryIds], references: [id])
+  thumbnailVideo String             @default("")
+  galleryImages  GalleryImage[]
+  cartItems      CartItem[]
+  seoTitle       String?
+  seoDescription String?
+
+  categoryIds String[] @db.ObjectId // Added for many-to-many relation
+}
+
+model ProductVariation {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  productId  String       @db.ObjectId
+  product    Product      @relation(fields: [productId], references: [id]) // Removed onDelete
+  size       String
+  color      String
+  price      Float
+  salePrice  Float        @default(0.0)
+  stock      Int
+  images     ProductImage[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  cartItems  CartItem[]
+  orderItems OrderItem[]  @relation("ProductVariationToOrderItem")
+
+  @@unique([productId, size, color])
+}
+
+model ProductImage {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  url                String
+  productVariationId String           @db.ObjectId
+  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id]) // Removed onDelete
+  createdAt          DateTime         @default(now())
+}
+
+model GalleryImage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  url       String
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id]) // Removed onDelete
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String    @unique
+  products       Product[] @relation("ProductToCategory", fields: [productIds], references: [id])
+  createdAt      DateTime  @default(now())
+  imageUrl       String?
+  seoTitle       String?
+  seoDescription String?
+
+  productIds String[] @db.ObjectId // Added for many-to-many relation
+}
+
+model Order {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String      @db.ObjectId
+  user            User        @relation(fields: [userId], references: [id])
+  total           Float
+  status          String
+  paymentMethod   String
+  shippingAddress Json
+  contactInfo     Json
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  orderItems      OrderItem[]
+  couponId        String?     @db.ObjectId
+  coupon          Coupon?     @relation(fields: [couponId], references: [id])
+}
+
+model OrderItem {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String           @db.ObjectId
+  order              Order            @relation(fields: [orderId], references: [id])
+  productVariationId String           @db.ObjectId
+  productVariation   ProductVariation @relation("ProductVariationToOrderItem", fields: [productVariationId], references: [id])
+  quantity           Int
+  price              Float
+  createdAt          DateTime         @default(now())
+
+  @@unique([orderId, productVariationId])
+}
+
+model Coupon {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  code      String   @unique
+  discount  Float
+  type      String
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Cart {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String?    @db.ObjectId
+  user         User?      @relation(fields: [userId], references: [id])
+  status       String     @default("active")
+  items        CartItem[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  lastActivity DateTime   @default(now()) @updatedAt
+  totalAmount  Float      @default(0)
+  totalItems   Int        @default(0)
+}
+
+model CartItem {
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  cartId             String           @db.ObjectId
+  cart               Cart             @relation(fields: [cartId], references: [id]) // Removed onDelete
+  productVariationId String           @db.ObjectId
+  productVariation   ProductVariation @relation(fields: [productVariationId], references: [id])
+  productId          String           @db.ObjectId
+  product            Product          @relation(fields: [productId], references: [id])
+  quantity           Int              @default(1)
+  price              Float
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([cartId, productVariationId])
+}
+
+model AboutUs {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ContactUs {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  content        String
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
